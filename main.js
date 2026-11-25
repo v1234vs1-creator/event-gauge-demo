@@ -33,14 +33,20 @@
     if (i === 3) { const c = document.createElement('div'); c.className = 'slot comma'; c.innerHTML = '<span>,</span>'; odo.appendChild(c); slotEls.comma = c; }
   }
   function setOdo(v, speed) {
+    /* 진짜 계수기처럼: 일의 자리가 넘어가는 순간에만 윗자리가 같이 넘어감(받아올림).
+       단, 1초에 여러 번 바뀌는 빠른 자리는 멈추지 않고 계속 굴러가게 섞음 → 끊김·반쯤 걸친 숫자 없음 */
+    v = Math.max(0, v);
+    const n = Math.floor(v + 1e-9), g = clamp(v - n, 0, 1);
+    const k0 = clamp(speed * .3, .12, 1);                      /* 일의 자리가 굴러가는 구간 길이 */
+    const u0 = clamp((g - (1 - k0)) / k0, 0, 1), s0 = u0 * u0 * (3 - 2 * u0);
     for (let i = 0; i < SLOTS; i++) {
-      /* 각 자리를 따로 계산: 빨리 바뀌는 자리는 쉬지 않고 계속 굴러가고,
-         천천히 바뀌는 자리는 바뀌는 순간에만 짧게(최대 0.3초) 부드럽게 굴러감 → 반쯤 걸친 채 멈추지 않음 */
-      const x = Math.max(0, v) / Math.pow(10, i), b = Math.floor(x + 1e-9), f = clamp(x - b, 0, 1);
-      const r = speed / Math.pow(10, i);                       /* 이 자리가 1초에 몇 번 바뀌는지 */
-      const k = clamp(r * .3, .12, 1);                         /* 굴러가는 구간 길이 */
-      const u = clamp((f - (1 - k)) / k, 0, 1);
-      const pos = (b % 10) + (k >= 1 ? f : u * u * (3 - 2 * u));
+      const p10 = Math.pow(10, i), d = Math.floor(n / p10) % 10;
+      const nines = n % p10 === p10 - 1;                         /* 아래 자리가 모두 9 → 같이 넘어갈 차례 */
+      const snapF = i === 0 ? s0 : (nines ? s0 : 0);
+      const contF = ((n % p10) + g) / p10;                       /* 계속 굴러가는 모드의 위치 */
+      const r = speed / p10;                                     /* 이 자리가 1초에 몇 번 바뀌는지 */
+      const w = clamp((r - 1.5) / 3, 0, 1);
+      const pos = d + snapF + (contF - snapF) * w;
       strips[i].style.transform = `translate3d(0,${(-pos).toFixed(4)}em,0)`;
       const blur = i === 0 ? clamp((r - 6) * .08, 0, 3) : 0;   /* 아주 빠를 때 일의 자리만 살짝 번짐 */
       const bs = blur > .4 ? `blur(${blur.toFixed(1)}px)` : '';
