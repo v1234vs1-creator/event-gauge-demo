@@ -227,8 +227,8 @@
       const am = $('amount'); am.classList.remove('punch'); void am.offsetWidth; am.classList.add('punch');
       doneAnim = { t0: performance.now(), dur: 1500, from: Math.max(shown, STOP) };
       fx.burst(960, 420, gold, 1.6);
-      fx.confetti(160, { x: 0, y: 1080, vx: 900, vy: -1250, spread: 1.6, colors: confColors() });
-      fx.confetti(160, { x: 1920, y: 1080, vx: -900, vy: -1250, spread: 1.6, colors: confColors() });
+      fx.confetti(160, { x: 0, y: 1080, vx: 700, vy: -1500, spread: 1.4, drag: .35, colors: confColors() });
+      fx.confetti(160, { x: 1920, y: 1080, vx: -700, vy: -1500, spread: 1.4, drag: .35, colors: confColors() });
       setTimeout(() => $('doneTxt').classList.add('show'), 700);
       let k = 0;
       const show = () => {

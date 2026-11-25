@@ -173,11 +173,11 @@
       const dur = .9 + Math.random() * .3;
       this.add({ t: 'rocket', x, y: this.h + 10, sx: x, sy: this.h + 10, tx, ty, dur, age: 0, life: dur, colors, scale, onBurst });
     }
-    confetti(n, { x = null, y = -20, vx = 0, vy = 0, spread = 1, colors }) {
+    confetti(n, { x = null, y = -20, vx = 0, vy = 0, spread = 1, colors, drag = 1.6 }) {
       for (let i = 0; i < n; i++) {
         const px = x == null ? Math.random() * this.w : x;
         this.add({
-          t: 'conf', x: px, y: y + (x == null ? -Math.random() * 200 : 0),
+          t: 'conf', dr: drag, x: px, y: y + (x == null ? -Math.random() * 200 : 0),
           vx: vx + (Math.random() - .5) * 420 * spread, vy: vy + (Math.random() - .5) * 300 * spread,
           w: 9 + Math.random() * 9, h: 5 + Math.random() * 6, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 12,
           ph: Math.random() * 6.28, life: 6 + Math.random() * 3, age: 0, color: colors[(Math.random() * colors.length) | 0]
@@ -191,7 +191,7 @@
       for (const p of this.ps) {
         p.age += dt; if (p.age >= p.life) { if (p.t === 'rocket') this.burst(p.tx, p.ty, p.colors, p.scale), p.onBurst && p.onBurst(p); continue; }
         if (p.t === 'conf') {
-          p.vx *= Math.exp(-1.6 * dt); p.vy = p.vy * Math.exp(-1.6 * dt) + 520 * dt; if (p.vy > 170) p.vy = 170;
+          const dk = Math.exp(-(p.dr = Math.min(1.6, p.dr + dt * .8)) * dt); p.vx *= dk; p.vy = p.vy * dk + 520 * dt; if (p.vy > 170) p.vy = 170;
           p.x += (p.vx + Math.sin(p.age * 3 + p.ph) * 60) * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
           if (p.y > this.h + 40) continue;
           const a = Math.min(1, (p.life - p.age) / .8);
