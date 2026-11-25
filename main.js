@@ -36,7 +36,11 @@
     let lower = 0;
     for (let i = 0; i < SLOTS; i++) {
       let pos;
-      if (i === 0) pos = ((v % 10) + 10) % 10;
+      if (i === 0) {
+        /* 자릿수가 바뀌는 순간에만 휙 굴러가도록 (반쯤 걸친 숫자 방지) */
+        const w = ((v % 10) + 10) % 10, b = Math.floor(w + 1e-9), f = w - b;
+        const u = clamp((f - .55) / .45, 0, 1); pos = b + u * u * (3 - 2 * u);
+      }
       else { const base = Math.floor(v / Math.pow(10, i) + 1e-9) % 10; pos = base + clamp(lower - 9, 0, 1); }
       lower = pos;
       strips[i].style.transform = `translateY(${-pos}em)`;
@@ -143,10 +147,13 @@
   const view = () => leader && booted ? { ph: S.ph, a: S.a, pp: people(), tp: S.taps, st: S.stall, rate: S.rate || 0 }
     : mirror ? { ph: mirror.ph, a: mirror.a, pp: mirror.pp, tp: mirror.tp, st: !!mirror.st, rate: 0 } : { ph: 'ready', a: 0, pp: 0, tp: 0, st: false, rate: 0 };
 
+  /* 계산은 화면 그리기와 따로, 실제 시간 기준으로 (창이 가려져도 10초 유지) */
+  let lastSim = performance.now();
+  setInterval(() => { const now = performance.now(), dt = Math.min(.5, (now - lastSim) / 1000); lastSim = now; if (leader && booted) simulate(dt); }, 33);
+
   let lastFrame = performance.now();
   function frame(now) {
-    const dt = Math.min(.05, (now - lastFrame) / 1000); lastFrame = now;
-    if (leader && booted) simulate(dt);
+    const dt = Math.min(.25, (now - lastFrame) / 1000); lastFrame = now;
     const V = view();
 
     if (V.ph !== shownPhase) { onPhase(V.ph, shownPhase, shownPhase === null || now < 2600); shownPhase = V.ph; }
