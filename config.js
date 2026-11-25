@@ -3,6 +3,7 @@
    ============================================================ */
 window.EVENT_CONFIG = {
   companyName: 'OO그룹',          /* 회사 이름 */
+  year: '2027',                   /* 목표 연도 (화면 곳곳에 나옴) */
   eventTitle: '2027 시무식',       /* 행사 이름 */
   eventDate: '2027. 1. 5',
   logoUrl: '',                     /* 로고 그림 주소 (비우면 LOGO 자리 표시) 예: 'assets/logo.svg' */

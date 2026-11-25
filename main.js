@@ -14,7 +14,6 @@
   /* QR */
   const joinUrl = pageUrl('join.html');
   $('qr').innerHTML = qrSvg(joinUrl, { fg: '#0b1020' });
-  $('joinShort').textContent = joinUrl.replace(/^https?:\/\//, '').replace(/\?.*$/, '');
 
   /* 눈금 */
   const G = CFG.goal, STOP = CFG.stopAt, DUR = CFG.durationSec;
@@ -233,7 +232,7 @@
   function onPhase(ph, prev, initial) {
     document.body.dataset.phase = ph;
     const m = $('msg'); m._h = null; m.classList.remove('urge');
-    $('eyebrow').textContent = ph === 'done' ? '목표 달성' : '2027 목표 달성까지';
+    $('eyebrow').textContent = ph === 'done' ? '목표 달성' : (CFG.year + ' 목표 달성까지');
     if (ph === 'ready') { fx.ps.length = 0; shown = 0; $('doneTxt').classList.remove('show'); doneAnim = null; m.innerHTML = ''; }
     if (ph === 'hold') {
       m.textContent = '대표님, 마지막 1억을 채워주세요';
