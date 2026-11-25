@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#04050a">
 <title>1000억 함께 채우기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="theme.css?v=1125144245">
+<link rel="stylesheet" href="theme.css?v=1125145150">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
@@ -96,11 +96,14 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
 <div class="sian"></div>
 
 <script src="lib/mqtt.min.js"></script>
-<script src="config.js?v=1125144245"></script>
-<script src="common.js?v=1125144245"></script>
+<script src="config.js?v=1125145150"></script>
+<script src="common.js?v=1125145150"></script>
 <script>
 (function () {
-  const { CFG, ROOM, rid, createBus, fmt, Sound, FX, clamp, applyBrand } = window.EVG;
+  const { CFG, ROOM, rid, createBus, fmt, counter, Sound, FX, clamp, applyBrand } = window.EVG;
+  /* 금액·참여 인원·전체 탭 수는 부드럽게 굴러 올라가게 */
+  const cAmt = counter('amt', v => v >= CFG.goal - 1e-6 ? fmt(v) : Math.floor(v + 1e-6).toLocaleString('ko-KR'));
+  const cPpl = counter('ppl', fmt), cAll = counter('all', v => fmt(v) + '<small>번</small>');
   const $ = id => document.getElementById(id);
   applyBrand();
   let myId; try { myId = localStorage.getItem('evg_id_' + ROOM); if (!myId) { myId = rid(10); localStorage.setItem('evg_id_' + ROOM, myId); } } catch (e) { myId = rid(10); }
@@ -120,8 +123,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
     const wasStale = stale; stale = false; lastState = Date.now();
     if (ep !== null && m.ep !== ep) { my = 0; pending = 0; setMy(); }
     if (ep !== m.ep) { ep = m.ep; hello(); }
-    $('amt').textContent = (m.a >= CFG.goal ? fmt(m.a) : Math.floor(m.a).toLocaleString('ko-KR'));
-    $('ppl').textContent = fmt(m.pp); $('all').innerHTML = fmt(m.tp) + '<small>번</small>';
+    cAmt.set(m.a);
+    cPpl.set(m.pp); cAll.set(m.tp);
     $('bar').style.transform = `scaleX(${clamp(m.a / CFG.goal, 0, 1)})`;
     if (m.ph !== ph || wasStale) setPhase(m.ph);
   }

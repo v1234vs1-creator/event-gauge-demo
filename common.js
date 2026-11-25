@@ -59,6 +59,37 @@
 
   /* ---------- 숫자 ---------- */
   const fmt = n => Math.round(n).toLocaleString('ko-KR');
+  /* 부드럽게 올라가는 숫자: 0.3초마다 툭툭 오는 값을, 다음 값이 올 때까지 같은 빠르기로 한 칸씩 굴려 채움.
+     (앞질러 예측하지 않아서 실제보다 큰 숫자가 보이는 일 없음, 거꾸로도 안 감)
+     counter('아이디', n => 글자) → .set(새 값). 줄어들면(리셋) 바로 맞춤. 글자가 바뀔 때만 다시 씀 */
+  function counter(id, render) {
+    let target = 0, cur = 0, from = 0, t0 = 0, dur = .3, changedAt = 0, on = false, first = true;
+    function write() {
+      const el = document.getElementById(id); if (!el) return;
+      const s = render(cur); if (el._s !== s) { el._s = s; el.innerHTML = s; }
+    }
+    function loop(now) {
+      const u = Math.min(1, (now - t0) / 1000 / dur);
+      cur = from + (target - from) * u;
+      write();
+      if (u >= 1) { on = false; return; }
+      requestAnimationFrame(loop);
+    }
+    return {
+      set(v) {
+        v = +v || 0; const now = performance.now();
+        if (first || v < target - 1e-6) { first = false; target = cur = from = v; changedAt = now; write(); return; }
+        if (v === target) return;
+        const gap = (now - changedAt) / 1000; changedAt = now;
+        dur = clamp(gap * 1.05, .12, .7);                        /* 값이 오는 간격만큼 걸려 굴러감 → 쉬지 않고 이어짐 */
+        from = cur; target = v; t0 = now;
+        if (!on) { on = true; requestAnimationFrame(loop); }
+      },
+      snap(v) { target = cur = from = +v || 0; write(); },
+      draw: () => write(),
+      get value() { return cur; }
+    };
+  }
   function wonText(eok) { /* 억 단위 실수 -> "99,900,000,000원" */
     const won = Math.round(eok * 1e4) * 1e4; /* 만원 단위로 반올림 */
     return won.toLocaleString('ko-KR') + '원';
@@ -272,5 +303,5 @@
     document.querySelectorAll('.sian').forEach(el => { el.textContent = CFG.draftLabel; el.hidden = !CFG.draftLabel; });
   }
 
-  window.EVG = { CFG, ROOM, rid, createBus, fmt, wonText, clamp, Sound, FX, qrSvg, runSim, pageUrl, applyBrand };
+  window.EVG = { CFG, ROOM, rid, createBus, fmt, counter, wonText, clamp, Sound, FX, qrSvg, runSim, pageUrl, applyBrand };
 })();

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#04050a">
 <title>대표님 버튼</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="theme.css?v=1125144245">
+<link rel="stylesheet" href="theme.css?v=1125145150">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
@@ -56,11 +56,12 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
 </div>
 <div class="sian"></div>
 <script src="lib/mqtt.min.js"></script>
-<script src="config.js?v=1125144245"></script>
-<script src="common.js?v=1125144245"></script>
+<script src="config.js?v=1125145150"></script>
+<script src="common.js?v=1125145150"></script>
 <script>
 (function () {
-  const { CFG, createBus, fmt, FX, applyBrand } = window.EVG;
+  const { CFG, createBus, fmt, counter, FX, applyBrand } = window.EVG;
+  const cAmt = counter('amt', v => fmt(v) + '억 원'); /* 부드럽게 올라가는 금액 */
   const $ = id => document.getElementById(id);
   applyBrand();
   const fx = new FX($('fx'));
@@ -72,7 +73,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
   });
   function apply(m) {
     if (!m.ts || Math.abs(Date.now() - m.ts) > 60000) return; /* 예전 행사 기록은 무시 */
-    $('amt').textContent = fmt(m.a) + '억 원';
+    cAmt.set(m.a);
     if (m.ph === ph) return;
     const prev = ph; ph = m.ph; document.body.className = ph;
     const b = $('btn');

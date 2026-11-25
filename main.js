@@ -1,7 +1,7 @@
 /* 메인 스크린: 게이지 계산(대표 화면 1대가 맡음) + 연출 */
 (function () {
   'use strict';
-  const { CFG, ROOM, rid, createBus, fmt, wonText, clamp, Sound, FX, qrSvg, runSim, pageUrl, applyBrand } = window.EVG;
+  const { CFG, ROOM, rid, createBus, fmt, counter, wonText, clamp, Sound, FX, qrSvg, runSim, pageUrl, applyBrand } = window.EVG;
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   applyBrand();
@@ -177,7 +177,9 @@
 
   /* 글자는 바뀔 때만 다시 씀 (매 프레임 다시 쓰면 화면 배치를 또 계산해서 끊김) */
   const txtCache = {}; const txt = (id, s) => { if (txtCache[id] !== s) { txtCache[id] = s; $(id).textContent = s; } };
-  const setHtml = (el, h) => { if (el._h !== h || el.innerHTML !== h) { el._h = h; el.innerHTML = h; } };
+  /* 탭 수·참여 인원은 부드럽게 굴러 올라가게 */
+  const cPeople = counter('people', fmt), cTaps = counter('tapN', fmt);
+  const setHtml = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
   let lastFrame = performance.now();
   function frame(now) {
     const dt = Math.min(.25, (now - lastFrame) / 1000); lastFrame = now;
@@ -211,13 +213,14 @@
     $('head').style.transform = `translateX(${frac * 1440}px)`;
     txt('pct', (Math.floor(frac * 1000) / 10).toFixed(1) + '%');
     tickEls.forEach((el, i) => el.classList.toggle('on', shown >= tickVals[i] - .01 && tickVals[i] > 0));
-    txt('people', fmt(V.pp));
+    cPeople.set(V.pp); if (V.ph !== 'run') cTaps.set(V.tp);
     $('live').classList.toggle('off', net !== 'online');
 
     if (V.ph === 'run') {
       const m = $('msg');
       if (V.st) { m.classList.add('urge'); setHtml(m, '조금만 더! <b>손을 멈추지 마세요</b>'); }
-      else { m.classList.remove('urge'); setHtml(m, `지금까지 <b>${fmt(V.tp)}</b>번의 탭이 모였어요`); }
+      else { m.classList.remove('urge'); setHtml(m, '지금까지 <b id="tapN"></b>번의 탭이 모였어요'); cTaps.draw(); }
+      cTaps.set(V.tp);
       /* 게이지 끝 불꽃 */
       const hx = 240 + frac * 1440, hy = 712 + 13;
       const n = speed > 1 ? Math.min(6, 1 + Math.floor(speed / 25)) : 0;
@@ -229,7 +232,7 @@
 
   function onPhase(ph, prev, initial) {
     document.body.dataset.phase = ph;
-    const m = $('msg'); m.classList.remove('urge');
+    const m = $('msg'); m._h = null; m.classList.remove('urge');
     $('eyebrow').textContent = ph === 'done' ? '목표 달성' : '2027 목표 달성까지';
     if (ph === 'ready') { fx.ps.length = 0; shown = 0; $('doneTxt').classList.remove('show'); doneAnim = null; m.innerHTML = ''; }
     if (ph === 'hold') {

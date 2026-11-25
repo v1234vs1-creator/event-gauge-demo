@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#04050a">
 <title>진행자 비상 패널</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="theme.css?v=1125144245">
+<link rel="stylesheet" href="theme.css?v=1125145150">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: var(--font); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -99,11 +99,12 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
 <div class="sian"></div>
 <script src="lib/mqtt.min.js"></script>
 <script src="lib/qrcode.min.js"></script>
-<script src="config.js?v=1125144245"></script>
-<script src="common.js?v=1125144245"></script>
+<script src="config.js?v=1125145150"></script>
+<script src="common.js?v=1125145150"></script>
 <script>
 (function () {
-  const { CFG, ROOM, createBus, fmt, qrSvg, runSim, pageUrl, applyBrand } = window.EVG;
+  const { CFG, ROOM, createBus, fmt, counter, qrSvg, runSim, pageUrl, applyBrand } = window.EVG;
+  const cAmt = counter('amt', v => fmt(v) + '억'), cPp = counter('pp', v => fmt(v) + '명'), cTp = counter('tp', fmt); /* 부드럽게 올라가는 숫자 */
   const $ = id => document.getElementById(id);
   applyBrand();
   $('room').textContent = ROOM;
@@ -117,7 +118,7 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
   function render() {
     if (!last) return;
     const p = $('ph'); p.textContent = PH[last.ph] || last.ph; p.className = 'phase ' + last.ph;
-    $('amt').textContent = fmt(last.a) + '억'; $('pp').textContent = fmt(last.pp) + '명'; $('tp').textContent = fmt(last.tp);
+    cAmt.set(last.a); cPp.set(last.pp); cTp.set(last.tp);
     $('bar').style.transform = `scaleX(${Math.min(1, last.a / CFG.goal)})`;
     showSim(!!last.sim);
   }
