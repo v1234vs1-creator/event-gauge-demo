@@ -205,7 +205,7 @@
     document.body.dataset.phase = ph;
     const m = $('msg'); m.classList.remove('urge');
     $('eyebrow').textContent = ph === 'done' ? '목표 달성' : '2027 목표 달성까지';
-    if (ph === 'ready') { shown = 0; $('doneTxt').classList.remove('show'); doneAnim = null; m.innerHTML = ''; }
+    if (ph === 'ready') { fx.ps.length = 0; shown = 0; $('doneTxt').classList.remove('show'); doneAnim = null; m.innerHTML = ''; }
     if (ph === 'hold') {
       m.textContent = '대표님, 마지막 1억을 채워주세요';
       if (!initial) { Sound.hold(); fx.spark(240 + STOP / G * 1440, 725, { n: 80, speed: 420, colors: [getVar('--gold-1'), getVar('--gold-2'), '#fff'], life: 1.1, size: 2.4, g: 200 }); }
