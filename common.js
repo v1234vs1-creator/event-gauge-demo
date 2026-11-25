@@ -48,7 +48,12 @@
       if (local) deliver(k, m, 'self'); else mark(m.m);
       if (bc) { try { bc.postMessage({ k, m }); } catch (e) { } }
       if (client && online) { try { client.publish(TOPICS[k], JSON.stringify(m), { qos: 0, retain }); } catch (e) { } }
+      else if (k === 'in' && m.t === 'cmd') queue.push({ k, m, at: Date.now() }); /* 연결 전 누른 버튼은 연결되면 보냄 */
     }
+    const queue = [];
+    if (client) client.on('connect', () => {
+      while (queue.length) { const q = queue.shift(); if (Date.now() - q.at < 15000) client.publish(TOPICS[q.k], JSON.stringify(q.m), { qos: 0 }); }
+    });
     return { send, get online() { return online; } };
   }
 
