@@ -33,19 +33,18 @@
     if (i === 3) { const c = document.createElement('div'); c.className = 'slot comma'; c.innerHTML = '<span>,</span>'; odo.appendChild(c); slotEls.comma = c; }
   }
   function setOdo(v, speed) {
-    let lower = 0;
     for (let i = 0; i < SLOTS; i++) {
-      let pos;
-      if (i === 0) {
-        /* 자릿수가 바뀌는 순간에만 휙 굴러가도록 (반쯤 걸친 숫자 방지) */
-        const w = ((v % 10) + 10) % 10, b = Math.floor(w + 1e-9), f = w - b;
-        const u = clamp((f - .55) / .45, 0, 1); pos = b + u * u * (3 - 2 * u);
-      }
-      else { const base = Math.floor(v / Math.pow(10, i) + 1e-9) % 10; pos = base + clamp(lower - 9, 0, 1); }
-      lower = pos;
-      strips[i].style.transform = `translateY(${-pos}em)`;
-      const blur = i === 0 ? clamp(speed * .05, 0, 9) : i === 1 ? clamp(speed * .006, 0, 4) : 0;
-      strips[i].style.filter = blur > .3 ? `blur(${blur.toFixed(1)}px)` : '';
+      /* 각 자리를 따로 계산: 빨리 바뀌는 자리는 쉬지 않고 계속 굴러가고,
+         천천히 바뀌는 자리는 바뀌는 순간에만 짧게(최대 0.3초) 부드럽게 굴러감 → 반쯤 걸친 채 멈추지 않음 */
+      const x = Math.max(0, v) / Math.pow(10, i), b = Math.floor(x + 1e-9), f = clamp(x - b, 0, 1);
+      const r = speed / Math.pow(10, i);                       /* 이 자리가 1초에 몇 번 바뀌는지 */
+      const k = clamp(r * .3, .12, 1);                         /* 굴러가는 구간 길이 */
+      const u = clamp((f - (1 - k)) / k, 0, 1);
+      const pos = (b % 10) + (k >= 1 ? f : u * u * (3 - 2 * u));
+      strips[i].style.transform = `translate3d(0,${(-pos).toFixed(4)}em,0)`;
+      const blur = i === 0 ? clamp((r - 6) * .08, 0, 3) : 0;   /* 아주 빠를 때 일의 자리만 살짝 번짐 */
+      const bs = blur > .4 ? `blur(${blur.toFixed(1)}px)` : '';
+      if (strips[i]._b !== bs) { strips[i].style.filter = bs; strips[i]._b = bs; }
       const show = i === 0 || v >= Math.pow(10, i) - .5;
       slotEls[i].classList.toggle('hide', !show);
     }
@@ -147,17 +146,36 @@
 
   /* ---------- 그리기 ---------- */
   const fx = new FX($('fx'), { w: 1920, h: 1080, dpr: 1 });
-  let shown = 0, shownPhase = null, doneAnim = null, lastShown = 0;
+  let shown = 0, shownPhase = null, doneAnim = null, lastShown = 0, spd = 0;
   const view = () => leader && booted ? { ph: S.ph, a: S.a, pp: people(), tp: S.taps, st: S.stall, rate: S.rate || 0 }
-    : mirror && Math.abs(Date.now() - mirror.ts) < 60000 ? { ph: mirror.ph, a: mirror.a, pp: mirror.pp, tp: mirror.tp, st: !!mirror.st, rate: 0 } : { ph: 'ready', a: 0, pp: 0, tp: 0, st: false, rate: 0 };
+    : mirror && Math.abs(Date.now() - mirror.ts) < 60000 ? { ph: mirror.ph, a: mirrorValue(), pp: mirror.pp, tp: mirror.tp, st: !!mirror.st, rate: 0 } : { ph: 'ready', a: 0, pp: 0, tp: 0, st: false, rate: 0 };
 
   /* 계산은 화면 그리기와 따로, 실제 시간 기준으로 (창이 가려져도 10초 유지) */
   let lastSim = performance.now();
-  setInterval(() => { const now = performance.now(), dt = Math.min(.5, (now - lastSim) / 1000); lastSim = now; if (leader && booted) simulate(dt); }, 33);
+  /* 화면이 보일 때는 매 프레임 계산(끊김 없음), 가려져도 타이머가 이어서 계산 */
+  function stepSim() { const now = performance.now(), dt = Math.min(.5, (now - lastSim) / 1000); if (dt < .004) return; lastSim = now; if (leader && booted) simulate(dt); }
+  setInterval(stepSim, 33);
 
+  /* 메인 화면을 두 대 켰을 때 따라가는 쪽: 0.3초마다 오는 값 사이를 예측으로 메워서 부드럽게 */
+  let mPrev = null, mVel = 0, mAt = 0;
+  function mirrorValue() {
+    if (!mirror) return 0;
+    if (mPrev !== mirror) {
+      if (mPrev && mirror.ph === 'run' && mPrev.ph === 'run' && mirror.ts > mPrev.ts) mVel = clamp((mirror.a - mPrev.a) / ((mirror.ts - mPrev.ts) / 1000), 0, 400);
+      else mVel = 0;
+      mPrev = mirror; mAt = performance.now();
+    }
+    if (mirror.ph !== 'run' || mirror.st) return mirror.a;
+    return Math.min(STOP, mirror.a + mVel * Math.min(.45, (performance.now() - mAt) / 1000));
+  }
+
+  /* 글자는 바뀔 때만 다시 씀 (매 프레임 다시 쓰면 화면 배치를 또 계산해서 끊김) */
+  const txtCache = {}; const txt = (id, s) => { if (txtCache[id] !== s) { txtCache[id] = s; $(id).textContent = s; } };
+  const setHtml = (el, h) => { if (el._h !== h || el.innerHTML !== h) { el._h = h; el.innerHTML = h; } };
   let lastFrame = performance.now();
   function frame(now) {
     const dt = Math.min(.25, (now - lastFrame) / 1000); lastFrame = now;
+    stepSim();
     const V = view();
 
     if (V.ph !== shownPhase) { onPhase(V.ph, shownPhase, shownPhase === null || now < 2600); shownPhase = V.ph; }
@@ -176,22 +194,24 @@
       if (Math.abs(target - shown) < .002) shown = target;
     }
     if (V.ph === 'ready') shown = Math.min(shown, target);
-    const speed = Math.abs(shown - lastShown) / Math.max(dt, .001); lastShown = shown;
+    const rawSpeed = Math.abs(shown - lastShown) / Math.max(dt, .001); lastShown = shown;
+    spd += (rawSpeed - spd) * Math.min(1, dt * 6);           /* 속도도 부드럽게 (숫자 굴림이 들쭉날쭉하지 않게) */
+    const speed = spd;
     setOdo(shown, speed);
-    $('won').textContent = wonText(shown);
+    txt('won', wonText(shown));
 
     const frac = clamp(shown / G, 0, 1);
     $('fill').style.transform = `scaleX(${frac})`;
     $('head').style.transform = `translateX(${frac * 1440}px)`;
-    $('pct').textContent = (Math.floor(frac * 1000) / 10).toFixed(1) + '%';
+    txt('pct', (Math.floor(frac * 1000) / 10).toFixed(1) + '%');
     tickEls.forEach((el, i) => el.classList.toggle('on', shown >= tickVals[i] - .01 && tickVals[i] > 0));
-    $('people').textContent = fmt(V.pp);
+    txt('people', fmt(V.pp));
     $('live').classList.toggle('off', net !== 'online');
 
     if (V.ph === 'run') {
       const m = $('msg');
-      if (V.st) { m.classList.add('urge'); m.innerHTML = '조금만 더! <b>손을 멈추지 마세요</b>'; }
-      else { m.classList.remove('urge'); m.innerHTML = `지금까지 <b>${fmt(V.tp)}</b>번의 탭이 모였어요`; }
+      if (V.st) { m.classList.add('urge'); setHtml(m, '조금만 더! <b>손을 멈추지 마세요</b>'); }
+      else { m.classList.remove('urge'); setHtml(m, `지금까지 <b>${fmt(V.tp)}</b>번의 탭이 모였어요`); }
       /* 게이지 끝 불꽃 */
       const hx = 240 + frac * 1440, hy = 712 + 13;
       const n = speed > 1 ? Math.min(6, 1 + Math.floor(speed / 25)) : 0;
