@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<title>대표님 버튼</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body { font-family: var(--font); color: var(--text); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.bg { position: fixed; inset: 0; transition: opacity 1s; background: radial-gradient(70% 55% at 50% 50%, rgba(255,255,255,.05), transparent 70%), var(--bg); }
+.bg.gold { background: radial-gradient(70% 55% at 50% 50%, color-mix(in srgb, var(--gold-2) 22%, transparent), transparent 70%), var(--bg); }
+.app { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: max(24px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom)); text-align: center; }
+.top .co { font-size: 15px; font-weight: 700; color: var(--text-2); }
+.top h1 { font-size: 22px; font-weight: 800; margin-top: 6px; letter-spacing: -.02em; }
+.conn { margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); }
+.conn i { width: 7px; height: 7px; border-radius: 50%; background: #f5a524; } .conn.on i { background: #2fd27a; }
+.mid { display: flex; flex-direction: column; align-items: center; }
+.now { font-size: 15px; color: var(--text-2); font-weight: 600; }
+.now b { display: block; font-size: 44px; color: var(--text); font-weight: 800; letter-spacing: -.03em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.wrap { position: relative; width: min(70vw, 52vh, 420px); aspect-ratio: 1; margin-top: 30px; }
+.halo { position: absolute; inset: -18%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--gold-2) 45%, transparent), transparent 65%); opacity: 0; transition: opacity .8s; pointer-events: none; }
+body.hold .halo { opacity: 1; animation: halo 1.8s ease-in-out infinite; }
+@keyframes halo { 50% { transform: scale(1.1); opacity: .6; } }
+#btn { position: absolute; inset: 0; border-radius: 50%; border: 0; font-family: inherit; cursor: pointer; color: #3a2600;
+  background: radial-gradient(circle at 50% 28%, var(--gold-1) 0%, var(--gold-2) 48%, var(--gold-3) 100%);
+  box-shadow: 0 30px 80px color-mix(in srgb, var(--gold-2) 40%, transparent), inset 0 3px 0 rgba(255,255,255,.6), inset 0 -16px 40px rgba(120,70,0,.35);
+  transition: transform .12s, filter .5s, box-shadow .2s; }
+#btn .big { display: block; font-size: clamp(30px, 9vw, 54px); font-weight: 900; letter-spacing: -.04em; }
+#btn .sm { display: block; font-size: clamp(13px, 3.4vw, 17px); font-weight: 700; margin-top: 6px; opacity: .75; }
+#btn:disabled { filter: grayscale(1) brightness(.35); cursor: not-allowed; box-shadow: none; }
+#btn.down { transform: scale(.94); }
+body.done #btn { filter: none; }
+.note { font-size: 15px; color: var(--text-2); line-height: 1.6; min-height: 48px; }
+.note b { color: var(--text); }
+body.hold .note b { color: var(--gold-2); }
+.sian { position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.4); padding: 4px 8px; border: 1px solid rgba(255,255,255,.15); border-radius: 6px; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+</style>
+</head>
+<body class="ready">
+<div class="bg" id="bg"></div>
+<canvas id="fx"></canvas>
+<div class="app">
+  <div class="top"><div class="co" data-cfg="companyName"></div><h1>대표님 전용 버튼</h1><div class="conn" id="conn"><i></i><span id="connTxt">연결 중</span></div></div>
+  <div class="mid">
+    <div class="now">지금 모인 금액<b id="amt">0억 원</b></div>
+    <div class="wrap"><div class="halo"></div>
+      <button id="btn" disabled><span class="big" id="big">마지막 1억</span><span class="sm" id="sm">999억이 되면 열려요</span></button>
+    </div>
+  </div>
+  <div class="note" id="note">직원들이 999억까지 채우면<br><b>버튼이 금빛으로 켜집니다</b></div>
+</div>
+<div class="sian"></div>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  const { CFG, createBus, fmt, FX, applyBrand } = window.EVG;
+  const $ = id => document.getElementById(id);
+  applyBrand();
+  const fx = new FX($('fx'));
+  let ph = 'ready', pressed = false;
+  const bus = createBus({
+    subs: ['state'],
+    onStatus: s => { $('conn').classList.toggle('on', s === 'online'); $('connTxt').textContent = s === 'online' ? '연결됨' : '연결 중'; },
+    onMessage: (k, m) => { if (k === 'state') apply(m); }
+  });
+  function apply(m) {
+    $('amt').textContent = fmt(m.a) + '억 원';
+    if (m.ph === ph) return;
+    const prev = ph; ph = m.ph; document.body.className = ph;
+    const b = $('btn');
+    $('bg').classList.toggle('gold', ph === 'hold' || ph === 'done');
+    if (ph === 'ready' || ph === 'run') { pressed = false; b.disabled = true; $('big').textContent = '마지막 1억'; $('sm').textContent = '999억이 되면 열려요'; $('note').innerHTML = '직원들이 999억까지 채우면<br><b>버튼이 금빛으로 켜집니다</b>'; }
+    if (ph === 'hold') { b.disabled = false; $('big').textContent = '1억 채우기'; $('sm').textContent = '눌러서 1000억 달성'; $('note').innerHTML = '<b>지금 눌러 주세요</b><br>한 번이면 됩니다'; if (navigator.vibrate) navigator.vibrate([40, 60, 40]); }
+    if (ph === 'done') {
+      b.disabled = true; $('big').textContent = '1000억'; $('sm').textContent = '달성!'; $('note').innerHTML = '<b>메인 화면을 봐 주세요</b><br>축하드립니다';
+      if (prev !== 'done') {
+        const cs = getComputedStyle(document.documentElement), c = n => cs.getPropertyValue(n).trim();
+        fx.confetti(120, { x: fx.w / 2, y: fx.h * .55, vy: -1000, spread: 2.4, colors: [c('--gold-1'), c('--gold-2'), c('--gold-3'), '#fff', c('--brand')] });
+      }
+    }
+  }
+  const b = $('btn');
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); if (b.disabled || pressed) return;
+    pressed = true; b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 140);
+    if (navigator.vibrate) navigator.vibrate(80);
+    $('sm').textContent = '보내는 중…';
+    /* 혹시 한 번이 빠져도 되도록 0.4초 간격으로 몇 번 더 보냄 (메인은 한 번만 반응) */
+    let n = 0; const iv = setInterval(() => { if (ph === 'done' || n++ > 12) return clearInterval(iv); bus.send('in', { t: 'cmd', c: 'ceo' }); }, 400);
+    bus.send('in', { t: 'cmd', c: 'ceo' });
+    setTimeout(() => { if (ph === 'hold') { pressed = false; $('sm').textContent = '한 번 더 눌러 주세요'; } }, 5500);
+  });
+})();
+</script>
+</body>
+</html>
