@@ -106,7 +106,9 @@
     const was = leader; leader = best.id === ME;
     if (leader && !was) {
       /* 이어받기: 최근 상태가 있으면 그대로 이어서 */
-      if (mirror && Math.abs(now - mirror.ts) < 15 * 60 * 1000) {
+      /* 진행 중(run/hold)은 15분 안, 끝난 상태(done)는 3분 안일 때만 이어받음 → 나중에 다시 열면 새로 시작 */
+      const age = mirror ? Math.abs(now - mirror.ts) : Infinity;
+      if (mirror && mirror.ph !== 'ready' && age < (mirror.ph === 'done' ? 3 : 15) * 60 * 1000) {
         S.ph = mirror.ph; S.ep = mirror.ep; S.taps = mirror.tp || 0; S.peopleBase = mirror.pp || 0;
         S.p = S.ph === 'hold' || S.ph === 'done' ? 1 : invEase(mirror.a || 0); S.t = S.p * DUR;
       }
@@ -147,7 +149,7 @@
   const fx = new FX($('fx'), { w: 1920, h: 1080, dpr: 1 });
   let shown = 0, shownPhase = null, doneAnim = null, lastShown = 0;
   const view = () => leader && booted ? { ph: S.ph, a: S.a, pp: people(), tp: S.taps, st: S.stall, rate: S.rate || 0 }
-    : mirror ? { ph: mirror.ph, a: mirror.a, pp: mirror.pp, tp: mirror.tp, st: !!mirror.st, rate: 0 } : { ph: 'ready', a: 0, pp: 0, tp: 0, st: false, rate: 0 };
+    : mirror && Math.abs(Date.now() - mirror.ts) < 60000 ? { ph: mirror.ph, a: mirror.a, pp: mirror.pp, tp: mirror.tp, st: !!mirror.st, rate: 0 } : { ph: 'ready', a: 0, pp: 0, tp: 0, st: false, rate: 0 };
 
   /* 계산은 화면 그리기와 따로, 실제 시간 기준으로 (창이 가려져도 10초 유지) */
   let lastSim = performance.now();
@@ -245,19 +247,29 @@
   requestAnimationFrame(frame);
 
   /* ---------- 소리·전체화면 / 비상 단축키 ---------- */
-  stage.addEventListener('pointerdown', () => {
+  function wake() {
     Sound.unlock(); $('soundPill').classList.add('gone');
+    /* 노트북 화면이 꺼지거나 어두워지지 않게 */
+    try { if (navigator.wakeLock && !wake.lock) navigator.wakeLock.request('screen').then(l => { wake.lock = l; l.addEventListener('release', () => { wake.lock = null; }); }).catch(() => { }); } catch (e) { }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Sound.ctx) wake(); });
+  stage.addEventListener('pointerdown', () => {
+    wake();
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
   });
   let stopSim = null;
   function stopLocalSim() { if (stopSim) { const s = stopSim; stopSim = null; s(); } }
+  /* 비상 단축키: 실수로 눌리지 않게 모두 Shift와 함께, 한글 자판이어도 동작하게 e.code 사용 */
   addEventListener('keydown', e => {
-    const k = e.key.toLowerCase();
-    if (k === 's') bus.send('in', { t: 'cmd', c: stopSim ? 'simStop' : 'simStart' }, { local: true });
-    else if (k === '9') bus.send('in', { t: 'cmd', c: 'fill999' }, { local: true });
-    else if (k === '0' || k === 'enter') bus.send('in', { t: 'cmd', c: 'fill1000' }, { local: true });
-    else if (k === 'r' && e.shiftKey) bus.send('in', { t: 'cmd', c: 'reset' }, { local: true });
-    else if (k === 'f') document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => { });
+    wake();
+    if (e.repeat) return;
+    const c = e.code;
+    if (c === 'KeyF' && !e.ctrlKey && !e.metaKey) { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => { }); return; }
+    if (!e.shiftKey) return;
+    if (c === 'KeyS') bus.send('in', { t: 'cmd', c: stopSim ? 'simStop' : 'simStart' }, { local: true });
+    else if (c === 'Digit9' || c === 'Numpad9') bus.send('in', { t: 'cmd', c: 'fill999' }, { local: true });
+    else if (c === 'Digit0' || c === 'Numpad0') bus.send('in', { t: 'cmd', c: 'fill1000' }, { local: true });
+    else if (c === 'KeyR') bus.send('in', { t: 'cmd', c: 'reset' }, { local: true });
   });
   setInterval(() => { if (stopSim && view().ph !== 'run' && view().ph !== 'ready') stopLocalSim(); }, 300);
 

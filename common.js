@@ -225,18 +225,22 @@
     }
   }
 
-  /* ---------- QR (둥근 점 SVG) ---------- */
-  function qrSvg(text, { fg = '#0b1020', bg = 'transparent' } = {}) {
-    const q = window.qrcode(0, 'M'); q.addData(text); q.make();
-    const n = q.getModuleCount(), m = 2, size = n + m * 2;
-    let dots = '';
-    const finder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
-    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-      if (!q.isDark(r, c) || finder(r, c)) continue;
-      dots += `<circle cx="${c + m + .5}" cy="${r + m + .5}" r=".44"/>`;
-    }
-    const eye = (x, y) => `<rect x="${x + .5}" y="${y + .5}" width="6" height="6" rx="1.8" fill="none" stroke="${fg}" stroke-width="1"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3" rx=".9"/>`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="geometricPrecision"><rect width="${size}" height="${size}" fill="${bg}"/><g fill="${fg}">${dots}${eye(m, m)}${eye(m + n - 7, m)}${eye(m, m + n - 7)}</g></svg>`;
+  /* ---------- QR (표준 네모 모양 — 어떤 폰 카메라로도 잘 읽히게) ---------- */
+  function qrSvg(text, { fg = '#0b1020', bg = '#ffffff' } = {}) {
+    try {
+      const q = window.qrcode(0, 'M'); q.addData(text); q.make();
+      const n = q.getModuleCount(), m = 2, size = n + m * 2;
+      let d = '';
+      for (let r = 0; r < n; r++) {
+        let c = 0;
+        while (c < n) {
+          if (!q.isDark(r, c)) { c++; continue; }
+          let e = c; while (e < n && q.isDark(r, e)) e++;
+          d += `M${c + m} ${r + m}h${e - c}v1h${c - e}z`; c = e;
+        }
+      }
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path fill="${fg}" d="${d}"/></svg>`;
+    } catch (e) { return `<div style="font-size:12px;color:#c00">QR을 못 만들었어요</div>`; }
   }
 
   /* ---------- 가짜 직원 시뮬레이션 ---------- */

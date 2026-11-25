@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#04050a">
 <title>진행자 비상 패널</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="theme.css?v=1125123735">
+<link rel="stylesheet" href="theme.css?v=1125125500">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: var(--font); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -73,7 +73,7 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
     <h2>버튼</h2>
     <div class="btns">
       <button class="b-sim" id="sim">가짜 직원 300명 시뮬레이션<small>혼자서도 0원 → 999억 흐름을 볼 수 있어요</small></button>
-      <button class="b-999" id="f999">999억까지 채우기<small>직원 폰 연결이 안 될 때</small></button>
+      <button class="b-999" id="f999">999억까지 채우기<small>직원 폰 연결이 안 될 때 · 두 번 눌러야 실행돼요</small></button>
       <button class="b-1000" id="f1000">1000억 달성<small>두 번 눌러야 실행돼요</small></button>
       <button class="b-reset" id="reset">처음으로 리셋<small>두 번 눌러야 실행돼요 · 0원 대기 화면으로</small></button>
     </div>
@@ -89,17 +89,18 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
   <div class="card">
     <h2>인터넷이 완전히 끊겼을 때 (메인 화면 노트북 키보드)</h2>
     <div class="keys">
-      <kbd>9</kbd> 999억까지 채우기 &nbsp; <kbd>0</kbd> 또는 <kbd>Enter</kbd> 1000억 달성<br>
-      <kbd>S</kbd> 가짜 직원 시뮬레이션 &nbsp; <kbd>Shift</kbd>+<kbd>R</kbd> 리셋 &nbsp; <kbd>F</kbd> 전체 화면<br>
+      실수로 눌리지 않게 모두 <kbd>Shift</kbd>와 같이 눌러요 (한글 자판이어도 돼요)<br>
+      <kbd>Shift</kbd>+<kbd>9</kbd> 999억까지 채우기 &nbsp; <kbd>Shift</kbd>+<kbd>0</kbd> 1000억 달성<br>
+      <kbd>Shift</kbd>+<kbd>S</kbd> 가짜 직원 시뮬레이션 &nbsp; <kbd>Shift</kbd>+<kbd>R</kbd> 리셋 &nbsp; <kbd>F</kbd> 전체 화면<br>
       같은 노트북의 다른 탭에서 연 진행자·대표 페이지는 인터넷 없이도 메인 화면과 연결돼요.
     </div>
   </div>
 </div>
 <div class="sian"></div>
-<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="config.js?v=1125123735"></script>
-<script src="common.js?v=1125123735"></script>
+<script src="lib/mqtt.min.js"></script>
+<script src="lib/qrcode.min.js"></script>
+<script src="config.js?v=1125125500"></script>
+<script src="common.js?v=1125125500"></script>
 <script>
 (function () {
   const { CFG, ROOM, createBus, fmt, qrSvg, runSim, pageUrl, applyBrand } = window.EVG;
@@ -134,7 +135,7 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
   }
   function endSim() { bus.send('in', { t: 'cmd', c: 'simStop' }); showSim(false); }
   simBtn.onclick = () => { if (simOn) return endSim(); bus.send('in', { t: 'cmd', c: 'simStart' }); showSim(true); };
-  $('f999').onclick = () => bus.send('in', { t: 'cmd', c: 'fill999' });
+  twoStep($('f999'), () => bus.send('in', { t: 'cmd', c: 'fill999' }));
   function twoStep(btn, fn) {
     let armed = 0; const orig = btn.innerHTML;
     btn.onclick = () => {
@@ -146,6 +147,8 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
   twoStep($('f1000'), () => bus.send('in', { t: 'cmd', c: 'fill1000' }));
   twoStep($('reset'), () => { endSim(); bus.send('in', { t: 'cmd', c: 'reset' }); });
 
+  const wake = () => { try { if (navigator.wakeLock && !wake.l) navigator.wakeLock.request('screen').then(l => { wake.l = l; l.addEventListener('release', () => wake.l = null); }).catch(() => { }); } catch (e) { } };
+  document.addEventListener('pointerdown', wake);
   const links = [['메인 화면', 'index.html'], ['직원용', 'join.html'], ['대표님', 'ceo.html'], ['진행자', 'host.html']];
   $('links').innerHTML = links.map(([n, f]) => { const u = pageUrl(f); return `<div class="link"><span class="n">${n}</span><a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//, '')}</a><button data-u="${u}">복사</button></div>`; }).join('');
   $('links').addEventListener('click', e => { const b = e.target.closest('button[data-u]'); if (!b) return; navigator.clipboard && navigator.clipboard.writeText(b.dataset.u).then(() => { b.textContent = '복사됨'; setTimeout(() => b.textContent = '복사', 1200); }); });

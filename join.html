@@ -6,12 +6,13 @@
 <meta name="theme-color" content="#04050a">
 <title>1000억 함께 채우기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="theme.css?v=1125123735">
+<link rel="stylesheet" href="theme.css?v=1125125500">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
-body { font-family: var(--font); color: var(--text); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; touch-action: manipulation; overscroll-behavior: none; }
-.bg { position: fixed; inset: 0; background:
+body { font-family: var(--font); color: var(--text); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; overscroll-behavior: none; }
+.bg { position: fixed; inset: 0; background: radial-gradient(120% 60% at 50% -10%, rgba(76,141,255,.35), transparent 60%), var(--bg); /* 옛 아이폰용 */
+  background:
   radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--brand) 38%, transparent), transparent 60%),
   radial-gradient(90% 50% at 50% 110%, color-mix(in srgb, var(--brand-2) 30%, transparent), transparent 70%), var(--bg); }
 .app { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(18px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; }
@@ -35,10 +36,11 @@ body.hold .bar i, body.done .bar i { background: linear-gradient(90deg, var(--go
 .hint { font-size: 17px; color: var(--text-2); font-weight: 600; text-align: center; min-height: 26px; transition: color .3s; }
 .hint b { color: var(--text); }
 .btnwrap { position: relative; width: min(72vw, 300px, 46vh); aspect-ratio: 1; margin: 26px 0 22px; }
-.ring { position: absolute; inset: -14px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--brand) 45%, transparent); animation: ringP 2.2s ease-out infinite; pointer-events: none; }
+.ring { position: absolute; inset: -14px; border-radius: 50%; border: 1.5px solid rgba(120,160,255,.45); border: 1.5px solid color-mix(in srgb, var(--brand) 45%, transparent); animation: ringP 2.2s ease-out infinite; pointer-events: none; }
 .ring.r2 { animation-delay: 1.1s; }
 @keyframes ringP { from { transform: scale(.92); opacity: .9; } to { transform: scale(1.22); opacity: 0; } }
 #tap { position: absolute; inset: 0; border: 0; border-radius: 50%; cursor: pointer; color: #fff; font-family: inherit;
+  background: radial-gradient(circle at 50% 30%, #8fb6ff 0%, var(--brand) 45%, var(--brand-2) 100%); box-shadow: 0 24px 60px rgba(76,141,255,.45); /* 옛 아이폰용 */
   background: radial-gradient(circle at 50% 30%, color-mix(in srgb, #fff 26%, var(--brand)) 0%, var(--brand) 45%, color-mix(in srgb, var(--brand-2) 85%, #000) 100%);
   box-shadow: 0 24px 60px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -10px 30px rgba(0,0,0,.25);
   transition: transform .09s ease-out, box-shadow .09s, filter .3s; touch-action: none; overflow: hidden; }
@@ -46,7 +48,7 @@ body.hold .bar i, body.done .bar i { background: linear-gradient(90deg, var(--go
 #tap .sm { display: block; font-size: 15px; font-weight: 600; opacity: .8; margin-top: 4px; pointer-events: none; }
 #tap.down { transform: scale(.93); box-shadow: 0 10px 30px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 2px 0 rgba(255,255,255,.25), inset 0 -4px 20px rgba(0,0,0,.3); }
 #tap:disabled { filter: saturate(.2) brightness(.55); }
-body.hold #tap:disabled, body.done #tap:disabled { filter: none; background: radial-gradient(circle at 50% 30%, var(--gold-1), var(--gold-2) 50%, var(--gold-3)); color: #3a2600; box-shadow: 0 24px 60px color-mix(in srgb, var(--gold-2) 40%, transparent), inset 0 2px 0 rgba(255,255,255,.5); }
+body.hold #tap:disabled, body.done #tap:disabled { filter: none; background: radial-gradient(circle at 50% 30%, var(--gold-1), var(--gold-2) 50%, var(--gold-3)); color: #3a2600; box-shadow: 0 24px 60px rgba(255,211,107,.4); box-shadow: 0 24px 60px color-mix(in srgb, var(--gold-2) 40%, transparent), inset 0 2px 0 rgba(255,255,255,.5); }
 body.hold .ring, body.done .ring { border-color: color-mix(in srgb, var(--gold-2) 55%, transparent); }
 .rip { position: absolute; width: 20px; height: 20px; margin: -10px; border-radius: 50%; background: rgba(255,255,255,.45); pointer-events: none; animation: rip .55s ease-out forwards; }
 @keyframes rip { to { transform: scale(16); opacity: 0; } }
@@ -93,9 +95,9 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
 </div>
 <div class="sian"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="config.js?v=1125123735"></script>
-<script src="common.js?v=1125123735"></script>
+<script src="lib/mqtt.min.js"></script>
+<script src="config.js?v=1125125500"></script>
+<script src="common.js?v=1125125500"></script>
 <script>
 (function () {
   const { CFG, ROOM, rid, createBus, fmt, Sound, FX, clamp, applyBrand } = window.EVG;
@@ -114,14 +116,18 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: n
   setInterval(hello, 15000);
 
   function apply(m) {
-    lastState = Date.now();
+    if (!m.ts || Math.abs(Date.now() - m.ts) > 60000) return waiting(); /* 예전 행사 기록은 무시 */
+    const wasStale = stale; stale = false; lastState = Date.now();
     if (ep !== null && m.ep !== ep) { my = 0; pending = 0; setMy(); }
     if (ep !== m.ep) { ep = m.ep; hello(); }
     $('amt').textContent = (m.a >= CFG.goal ? fmt(m.a) : Math.floor(m.a).toLocaleString('ko-KR'));
     $('ppl').textContent = fmt(m.pp); $('all').innerHTML = fmt(m.tp) + '<small>번</small>';
     $('bar').style.transform = `scaleX(${clamp(m.a / CFG.goal, 0, 1)})`;
-    if (m.ph !== ph) setPhase(m.ph);
+    if (m.ph !== ph || wasStale) setPhase(m.ph);
   }
+  let stale = false;
+  function waiting() { stale = true; if (ph !== 'ready') setPhase('ready'); $('hint').innerHTML = '메인 화면이 켜지면 <b>바로 시작돼요</b>'; }
+  setInterval(() => { if (lastState && Date.now() - lastState > 8000 && (stale = true)) $('hint').innerHTML = '메인 화면 신호를 기다리는 중…'; }, 2000);
   function setPhase(p) {
     const prev = ph; ph = p; document.body.className = p;
     const tap = $('tap');
