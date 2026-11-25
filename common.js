@@ -19,7 +19,7 @@
       onMessage && onMessage(k, m, src);
     };
     let bc = null;
-    try {
+    if (!qs.has('nobc')) try { /* ?nobc=1 : 인터넷 경로만 시험할 때 */
       bc = new BroadcastChannel(BASE);
       bc.onmessage = e => { const d = e.data || {}; if (subs.includes(d.k)) deliver(d.k, d.m, 'local'); };
     } catch (e) { }
