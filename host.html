@@ -118,7 +118,7 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
     const p = $('ph'); p.textContent = PH[last.ph] || last.ph; p.className = 'phase ' + last.ph;
     $('amt').textContent = fmt(last.a) + '억'; $('pp').textContent = fmt(last.pp) + '명'; $('tp').textContent = fmt(last.tp);
     $('bar').style.transform = `scaleX(${Math.min(1, last.a / CFG.goal)})`;
-    if (last.ph !== 'run' && last.ph !== 'ready' && stopSim) endSim();
+    showSim(!!last.sim);
   }
   setInterval(() => {
     const ok = lastAt && Date.now() - lastAt < 3000;
@@ -126,15 +126,14 @@ kbd { font-family: inherit; font-size: 12px; font-weight: 700; padding: 2px 7px;
     $('mainst').style.color = ok ? '#2fd27a' : '';
   }, 700);
 
-  let stopSim = null;
-  const simBtn = $('sim');
-  function endSim() { if (stopSim) { const s = stopSim; stopSim = null; s(); } simBtn.classList.remove('on'); simBtn.innerHTML = '가짜 직원 300명 시뮬레이션<small>혼자서도 0원 → 999억 흐름을 볼 수 있어요</small>'; }
-  simBtn.onclick = () => {
-    if (stopSim) return endSim();
-    if (last && (last.ph === 'hold' || last.ph === 'done')) { bus.send('in', { t: 'cmd', c: 'reset' }); }
-    simBtn.classList.add('on'); simBtn.innerHTML = '시뮬레이션 멈추기<small>가짜 직원 300명이 연타하는 중…</small>';
-    setTimeout(() => { stopSim = runSim(bus, { onEnd: () => { stopSim = null; endSim(); } }); }, last && last.ph !== 'ready' && last.ph !== 'run' ? 600 : 0);
-  };
+  /* 가짜 직원은 메인 화면이 직접 돌려요 (이 페이지는 시작/멈춤 신호만) */
+  const simBtn = $('sim'); let simOn = false;
+  function showSim(on) {
+    if (on === simOn) return; simOn = on; simBtn.classList.toggle('on', on);
+    simBtn.innerHTML = on ? '시뮬레이션 멈추기<small>가짜 직원 300명이 연타하는 중…</small>' : '가짜 직원 300명 시뮬레이션<small>혼자서도 0원 → 999억 흐름을 볼 수 있어요</small>';
+  }
+  function endSim() { bus.send('in', { t: 'cmd', c: 'simStop' }); showSim(false); }
+  simBtn.onclick = () => { if (simOn) return endSim(); bus.send('in', { t: 'cmd', c: 'simStart' }); showSim(true); };
   $('f999').onclick = () => bus.send('in', { t: 'cmd', c: 'fill999' });
   function twoStep(btn, fn) {
     let armed = 0; const orig = btn.innerHTML;

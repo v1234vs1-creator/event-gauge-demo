@@ -83,6 +83,8 @@
         else if (m.c === 'fill999') { if (S.ph === 'ready' || S.ph === 'run') { S.ph = 'hold'; S.p = 1; } }
         else if (m.c === 'fill1000') { if (S.ph !== 'done') S.ph = 'done'; }
         else if (m.c === 'ceo') { if (S.ph === 'hold') S.ph = 'done'; }
+        else if (m.c === 'simStart') { if (S.ph === 'hold' || S.ph === 'done') reset(); if (!stopSim) stopSim = runSim(bus, { onEnd: () => { stopSim = null; } }); }
+        else if (m.c === 'simStop') stopLocalSim();
         break;
     }
   }
@@ -120,7 +122,7 @@
     const rate = tapLog.reduce((s, x) => s + x[1], 0) / 1.2;
     S.rate = rate;
     if (S.ph === 'run') {
-      const active = now - S.lastTap < 1300;
+      const active = now - S.lastTap < 2000;
       let vt = 0;
       if (active) {
         const f = .85 + .3 * clamp(Math.log10(1 + rate) / 3, 0, 1);       /* 탭이 많을수록 조금 빠르게 (0.85~1.15배) */
@@ -138,7 +140,7 @@
   }
   setInterval(() => {
     if (!leader || !booted) return;
-    bus.send('state', { t: 'st', ph: S.ph, a: +S.a.toFixed(3), pp: people(), tp: S.taps, ep: S.ep, st: S.stall ? 1 : 0, ld: ME, ts: Date.now() }, { retain: true });
+    bus.send('state', { t: 'st', sim: stopSim ? 1 : 0, ph: S.ph, a: +S.a.toFixed(3), pp: people(), tp: S.taps, ep: S.ep, st: S.stall ? 1 : 0, ld: ME, ts: Date.now() }, { retain: true });
   }, 300);
 
   /* ---------- 그리기 ---------- */
@@ -251,7 +253,7 @@
   function stopLocalSim() { if (stopSim) { const s = stopSim; stopSim = null; s(); } }
   addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
-    if (k === 's') { if (stopSim) stopLocalSim(); else stopSim = runSim(bus, { onEnd: () => { stopSim = null; } }); }
+    if (k === 's') bus.send('in', { t: 'cmd', c: stopSim ? 'simStop' : 'simStart' }, { local: true });
     else if (k === '9') bus.send('in', { t: 'cmd', c: 'fill999' }, { local: true });
     else if (k === '0' || k === 'enter') bus.send('in', { t: 'cmd', c: 'fill1000' }, { local: true });
     else if (k === 'r' && e.shiftKey) bus.send('in', { t: 'cmd', c: 'reset' }, { local: true });
